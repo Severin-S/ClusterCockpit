@@ -1,0 +1,53 @@
+version: "3.7"
+services:
+  app:
+    container_name: ClusterCockpit
+    restart: unless-stopped
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    secrets:
+      - cockpit_password
+    environment:
+      - COCKPIT_PASSWORD_FILE=/run/secrets/cockpit_password
+    env_file:
+      - ./secrets/cockpit.env
+    networks:
+      - cockpit
+    depends_on:
+      - database
+
+  database:
+    container_name: ClusterCockpit_Database
+    image: mysql
+    restart: unless-stopped
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    volumes:
+      - ./data/mysql/:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - cockpit
+    secrets:
+      - mysql_root
+      - mysql_cockpit 
+    environment:
+      - MYSQL_DATABASE=ClusterCockpit
+      - MYSQL_USER=cockpit
+      - MYSQL_PASSWORD_FILE=/run/secrets/mysql_cockpit
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root
+
+networks:
+  cockpit:
+    driver: bridge
+
+secrets:
+  mysql_root:
+    file: ./secrets/mysql_root.secret
+  mysql_cockpit:
+    file: ./secrets/mysql_cockpit.secret
+  cockpit_password:
+    file: ./secrets/cockpit_password.secret
